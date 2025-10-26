@@ -9,9 +9,9 @@ export class ApiInterface {
 
     getProductList(): Promise<IGetRespose> {
         return this.api.get<IGetRespose>("/product/");
-    }
+    }   
 
     postOrder(data: IPostBody): Promise<IPostResponse> {
-        return this.api.post("/order/", data);
+        return this.api.post("/order", data);
     }
 }

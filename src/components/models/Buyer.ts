@@ -1,4 +1,5 @@
 import { IBuyer } from '../../types/index.ts';
+import { IEvents } from '../base/Events.ts';
 
 export class Buyer {
     protected buyer: IBuyer = {
@@ -8,21 +9,22 @@ export class Buyer {
             address: "",
         };
 
+    constructor(protected events: IEvents) {}
+
     saveData<K extends keyof IBuyer>(field: K, value: IBuyer[K]): void {
         this.buyer[field] = value;
+        this.events.emit("buyer:saveData", {field: field})
     }
 
     getBuyerInfo(): IBuyer {
         return this.buyer;
     }
 
-    clearBuyerInfo(): void {
-        this.buyer = {
-            payment: "",
-            email: "",
-            phone: "",
-            address: "", 
-        };
+    clearData() {
+        this.buyer.address = "";
+        this.buyer.payment = "";
+        this.buyer.email = "";
+        this.buyer.phone = "";
     }
 
     checkData<K extends keyof IBuyer>(field: K, value: IBuyer[K]): string {
