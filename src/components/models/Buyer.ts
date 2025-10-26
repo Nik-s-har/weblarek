@@ -13,7 +13,8 @@ export class Buyer {
 
     saveData<K extends keyof IBuyer>(field: K, value: IBuyer[K]): void {
         this.buyer[field] = value;
-        this.events.emit("buyer:saveData", {field: field})
+        this.events.emit("buyer:saveData", {field: field});
+        this.validate();
     }
 
     getBuyerInfo(): IBuyer {
@@ -36,5 +37,13 @@ export class Buyer {
         }
         if (value === "") return message[field];
         return "";
+    }
+
+    validate() {
+        const errors = {};
+        for (let key in this.buyer) {
+            errors[key] = this.checkData(key, this.buyer[key])
+        }
+        this.events.emit("buyer:validate", errors);
     }
 }

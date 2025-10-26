@@ -32,6 +32,10 @@ const main = ensureElement(".gallery");
 const gallery = new Gallery(main);
 const modal = ensureElement("#modal-container");
 const modalWindow = new ModalContainer(modal, events);
+const basket = new Basket(cloneTemplate("#basket"), events);
+let basketView = basket.render({list: undefined, totalPrice: 0});
+const formOrder = new FormOrder(cloneTemplate("#order"), events);
+const formContacts = new FormContacts(cloneTemplate("#contacts"), events);
 
 
 //Получаем с сервера массив карточек товаров
@@ -41,93 +45,27 @@ dataInterface.getProductList().then((data) => {
     catalog.saveProducts(data.items);
 }).catch((error) => console.log(error))
 
-//Формирования и открытия корзины
-function basketOpen() {
-    //Создаем элземпляр представления корзины
-    const basket = new Basket(cloneTemplate("#basket"), events);
-
-    //Получаем из модели необходимые данные
-    const cartItems = shoppingCart.getCartItems();
-    const totalCost = shoppingCart.getTotalCost();
-     
-    
-    //Формируем содержимое корзины
-    let cardView: HTMLElement[] | undefined = undefined;
-    if (cartItems.length) {
-        //Если корзина не пустая, формируем массив из карточек товаров для корзины
-        cardView = cartItems.map((item, index) => {
-            const cardBasket = new CardBasket(cloneTemplate("#card-basket"), {
-                onClick: () => events.emit("cardBasket:delete", item),
-            });
-            const data = {
-                index: index + 1,
-                title: item.title,
-                price: item.price
-            }
-            return cardBasket.render(data);
-        })
-    }
-    
-    //Выводим отображение корзины в модальном окне
-    const basketView = basket.render({list: cardView, totalPrice: totalCost})
-    modalWindow.render({content: basketView, active: true});
-}
 
 //Функция отображения формы с адресом и способами оплаты
-function formOrderView() {
-    const form = new FormOrder(cloneTemplate("#order"), events);
+function showFormOrder() {
     const buyerInfo = buyer.getBuyerInfo();
-    let error: string = "";
-    let submitActiev: boolean = false;
 
-    //Валидация формы
-    const checkPayment = buyer.checkData("payment", buyerInfo.payment);
-    const checkAddress = buyer.checkData("address", buyerInfo.address);
-    if (checkPayment) {
-        error = checkPayment;
-        submitActiev = true;
-    } else if (checkAddress) {
-        error = checkAddress;
-        submitActiev = true;
-    }
-
-    //Вывод формы в модальном окне
     const formOrderInfo = {
-        submit: submitActiev,
-        errors: error,
         payment: buyerInfo.payment,
         address: buyerInfo.address,
     }
-    const formView = form.render(formOrderInfo);
-    modalWindow.render({content: formView, active: true});
+    modalWindow.render({content: formOrder.render(formOrderInfo), active: true});
 }
 
 //Функция отображения формы с контактами
-function formContactsView() {
-    const form = new FormContacts(cloneTemplate("#contacts"), events);
+function showFormContacts() {
     const buyerInfo = buyer.getBuyerInfo();
-    let error: string = "";
-    let submitActiev: boolean = false;
-
-    //Валидация формы
-    const checkEmail = buyer.checkData("email", buyerInfo.email);
-    const checkPhone = buyer.checkData("phone", buyerInfo.phone);
-    if (checkEmail) {
-        error = checkEmail;
-        submitActiev = true;
-    } else if (checkPhone) {
-        error = checkPhone;
-        submitActiev = true;
-    }
 
     const formContactsInfo = {
-        submit: submitActiev,
-        errors: error,
         email: buyerInfo.email,
         phone: buyerInfo.phone
     }
-    const formView = form.render(formContactsInfo);
-    modalWindow.render({content: formView, active: true});
+    modalWindow.render({content: formContacts.render(formContactsInfo), active: true});
 }
 
 //Функция подготовки данных для отправки на сервер
@@ -173,10 +111,6 @@ events.on("productCatalog:saveSelectedProduct", () => {
 })
 
 events.on("modal:close", () => {
-    catalog.clearSelectedProduct();
-})
-
-events.on("productCatalog:clearSelectedProduct", () => {
     modalWindow.render({active: false});
 })
 
@@ -185,6 +119,7 @@ events.on("cardPrewiew:addCard", () => {
     if (product?.price) {
         shoppingCart.addProduct(product);
         catalog.clearSelectedProduct();
+        modalWindow.render({active: false});
     }
 })
 
@@ -193,22 +128,41 @@ events.on("cardPrewiew:delCard", () => {
     if (product) {
         shoppingCart.deleteProduct(product);
         catalog.clearSelectedProduct();
+        modalWindow.render({active: false});
     }
 })
 
 events.on("shoppingCart:change", () => {
     header.render({counter: shoppingCart.getQuantityProducts()});
+    const cartItems = shoppingCart.getCartItems();
+    if (cartItems.length) {
+        basket.list = cartItems.map((item, index) => {
+            const cardBasket = new CardBasket(cloneTemplate("#card-basket"), {
+                onClick: () => events.emit("cardBasket:delete", item),
+            });
+            const data = {
+                index: index + 1,
+                title: item.title,
+                price: item.price
+            }
+            return cardBasket.render(data);
+        })      
+    } else {
+        basket.list = undefined;
+    }
+    basket.totalPrice = shoppingCart.getTotalCost();
 })
 
-events.on("basket:open", () => basketOpen())
+events.on("basket:open", () => {
+    modalWindow.render({content: basketView, active: true});
+})
 
 events.on("cardBasket:delete", (item: IProduct) => {
     shoppingCart.deleteProduct(item);
-    basketOpen();
 })
 
 events.on("basket:order", () => {
-    formOrderView();
+    showFormOrder();
 })
 
 events.on("form:card", () => {
@@ -243,9 +197,9 @@ interface IBuyerChange {
 
 events.on("buyer:saveData", (obj: IBuyerChange) => {
     if (obj.field === "payment" || obj.field === "address") {
-        formOrderView();
+        showFormOrder();
     } else {
-        formContactsView();
+        showFormContacts();
     }
 })
 
@@ -256,7 +210,7 @@ interface IFormSubmit {
 events.on("form:submit", (obj: IFormSubmit) => {
     switch (obj.formName) {
         case "order":
-            formContactsView()
+            showFormContacts();
             break;
         case "contacts":
             const data = getPostObj(); //Готовим данные для отправки на сервер
@@ -271,6 +225,8 @@ events.on("form:submit", (obj: IFormSubmit) => {
                 modalWindow.render({content: successView, active: true});
             }).catch(err => console.log(err))
             break;
+        default: 
+            break;
     }
 })
 
@@ -280,4 +236,9 @@ events.on("success:close", () => {
 
 events.on("shoppingCart:clearCart", () => {
     header.render({counter: shoppingCart.getQuantityProducts()});
+})
+
+events.on("buyer:validate", (errors) => {
+    formOrder.validate(errors); 
+    formContacts.validate(errors);
 })

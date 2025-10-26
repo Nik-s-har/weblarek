@@ -25,7 +25,7 @@ export class Basket extends Component<IBasket>  {
         })
     }
 
-    set list(basketItems: HTMLLIElement[]|undefined) {
+    set list(basketItems: HTMLElement[]|undefined) {
         if (!basketItems) {
             this.basketList.innerHTML = '<li>Корзина пуста</li>';
             this.basketList.classList.add('basket__empty');
@@ -33,6 +33,7 @@ export class Basket extends Component<IBasket>  {
             return;
         }
         this.basketList.innerHTML = '';
+        this.basketButton.disabled = false;
         this.basketList.classList.remove('basket__empty');
         basketItems.forEach(item => {
             this.basketList.appendChild(item);

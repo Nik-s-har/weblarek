@@ -2,22 +2,38 @@ import { ensureElement } from "../../utils/utils";
 import { Component } from "../base/Component";
 import { IEvents } from "../base/Events";
 
-interface IForm {
-    submit: boolean;
-    errors: string;
-}
+// interface IForm {
+//     submit: boolean;
+//     errors: string;
+// }
 
-interface IFormOrder extends IForm{
+// interface IFormOrder extends IForm{
+//     payment: "cart" | "cash" | "";
+//     address: string;
+// }
+interface IFormOrder {
     payment: "cart" | "cash" | "";
     address: string;
 }
 
-interface IFormContacts extends IForm{
+// interface IFormContacts extends IForm{
+//     email: string;
+//     phone: string;
+// }
+
+interface IFormContacts {
     email: string;
     phone: string;
 }
 
-class Form<T extends IForm> extends Component<T> {
+interface IErrors {
+    payment: string;
+    address: string;
+    email: string;
+    phone: string;
+}
+
+class Form<T> extends Component<T> {
     protected submiteButton: HTMLButtonElement;
     protected formErrors: HTMLElement;
 
@@ -34,13 +50,13 @@ class Form<T extends IForm> extends Component<T> {
 
     }
 
-    set submit(active: boolean) {
-        this.submiteButton.disabled = active;
-    }
+    // set submit(active: boolean) {
+    //     this.submiteButton.disabled = active;
+    // }
 
-    set errors(value: string)  {
-        this.formErrors.textContent = value;
-    }
+    // set errors(value: string)  {
+    //     this.formErrors.textContent = value;
+    // }
 } 
 
 export class FormOrder extends Form<IFormOrder> {
@@ -88,6 +104,16 @@ export class FormOrder extends Form<IFormOrder> {
     set address(value: string) {
         this.inputAddress.value = value;
     }
+
+    validate(errors: IErrors) {
+        if (errors.address || errors.payment) {
+            this.formErrors.textContent = `${errors.address} ${errors.payment}`;
+            this.submiteButton.disabled = true;
+        } else {
+            this.formErrors.textContent = "";
+            this.submiteButton.disabled = false;
+        }
+    }
 }
 
 export class FormContacts extends Form<IFormContacts> {
@@ -116,6 +142,16 @@ export class FormContacts extends Form<IFormContacts> {
 
     set phone(value: string) {
         this.inputPhone.value = value;
+    }
+
+    validate(errors: IErrors) {
+        if (errors.email || errors.phone) {
+            this.formErrors.textContent = `${errors.email} ${errors.phone}`;
+            this.submiteButton.disabled = true;
+        } else {
+            this.formErrors.textContent = "";
+            this.submiteButton.disabled = false;
+        }
     }
 }
 
