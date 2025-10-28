@@ -9,7 +9,7 @@ export class ProductCatalog {
 
     saveProducts(data: IProduct[]): void {
         this.productList = [...data];
-        this.events.emit("productCatalog:saveProducts");
+        this.events.emit("productCatalog:showProducts");
     }
 
     getProductList(): IProduct[] {
@@ -36,6 +36,5 @@ export class ProductCatalog {
 
     clearSelectedProduct() {
         this.selectedProduct = null;
-        this.events.emit("productCatalog:clearSelectedProduct");
     }
 }

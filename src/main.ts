@@ -33,7 +33,6 @@ const gallery = new Gallery(main);
 const modal = ensureElement("#modal-container");
 const modalWindow = new ModalContainer(modal, events);
 const basket = new Basket(cloneTemplate("#basket"), events);
-let basketView = basket.render({list: undefined, totalPrice: 0});
 const formOrder = new FormOrder(cloneTemplate("#order"), events);
 const formContacts = new FormContacts(cloneTemplate("#contacts"), events);
 
@@ -84,7 +83,7 @@ function getPostObj() {
     return postObj;
 }
 
-events.on("productCatalog:saveProducts", () => {
+events.on("productCatalog:showProducts", () => {
     const productList = catalog.getProductList().map((item) => {
         const newCard = new CardCatalog(cloneTemplate("#card-catalog"), {
             onClick: () => events.emit("cardCatalog:select", item),
@@ -114,47 +113,24 @@ events.on("modal:close", () => {
     modalWindow.render({active: false});
 })
 
-events.on("cardPrewiew:addCard", () => {
-    const product = catalog.getSelectedProduct();
-    if (product?.price) {
-        shoppingCart.addProduct(product);
-        catalog.clearSelectedProduct();
-        modalWindow.render({active: false});
-    }
-})
-
-events.on("cardPrewiew:delCard", () => {
-    const product = catalog.getSelectedProduct();
-    if (product) {
-        shoppingCart.deleteProduct(product);
-        catalog.clearSelectedProduct();
-        modalWindow.render({active: false});
-    }
-})
-
 events.on("shoppingCart:change", () => {
     header.render({counter: shoppingCart.getQuantityProducts()});
-    const cartItems = shoppingCart.getCartItems();
-    if (cartItems.length) {
-        basket.list = cartItems.map((item, index) => {
-            const cardBasket = new CardBasket(cloneTemplate("#card-basket"), {
-                onClick: () => events.emit("cardBasket:delete", item),
-            });
-            const data = {
-                index: index + 1,
-                title: item.title,
-                price: item.price
-            }
-            return cardBasket.render(data);
-        })      
-    } else {
-        basket.list = undefined;
-    }
+    basket.list = shoppingCart.getCartItems().map((item, index) => {
+        const cardBasket = new CardBasket(cloneTemplate("#card-basket"), {
+            onClick: () => events.emit("cardBasket:delete", item),
+        });
+        const data = {
+            index: index + 1,
+            title: item.title,
+            price: item.price
+        }
+        return cardBasket.render(data);
+    })   
     basket.totalPrice = shoppingCart.getTotalCost();
 })
 
 events.on("basket:open", () => {
-    modalWindow.render({content: basketView, active: true});
+    modalWindow.render({content: basket.render(), active: true});
 })
 
 events.on("cardBasket:delete", (item: IProduct) => {
@@ -162,6 +138,7 @@ events.on("cardBasket:delete", (item: IProduct) => {
 })
 
 events.on("basket:order", () => {
+    buyer.validate();
     showFormOrder();
 })
 
@@ -193,13 +170,14 @@ events.on("form:phone", (obj: Partial<IBuyer>) => {
 
 interface IBuyerChange {
     field: string;
+    value: any;
 }
 
 events.on("buyer:saveData", (obj: IBuyerChange) => {
     if (obj.field === "payment" || obj.field === "address") {
-        showFormOrder();
-    } else {
-        showFormContacts();
+        formOrder[obj.field] = obj.value;
+    } else if (obj.field === "email" || obj.field === "phone") {
+        formContacts[obj.field] = obj.value;
     }
 })
 
@@ -241,4 +219,18 @@ events.on("shoppingCart:clearCart", () => {
 events.on("buyer:validate", (errors) => {
     formOrder.validate(errors); 
     formContacts.validate(errors);
+})
+
+interface IPrewiewClick{
+    isInCart: boolean;
+}
+
+events.on("cardPrewiew:clickButton", (obj: IPrewiewClick) => {
+    const product = catalog.getSelectedProduct();
+    if (obj.isInCart) {
+        if (product) shoppingCart.deleteProduct(product);
+    } else {
+        if (product) shoppingCart.addProduct(product);
+    }
+    modalWindow.render({active: false});
 })

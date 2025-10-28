@@ -13,7 +13,7 @@ export class Buyer {
 
     saveData<K extends keyof IBuyer>(field: K, value: IBuyer[K]): void {
         this.buyer[field] = value;
-        this.events.emit("buyer:saveData", {field: field});
+        this.events.emit("buyer:saveData", {field, value});
         this.validate();
     }
 

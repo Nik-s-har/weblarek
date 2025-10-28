@@ -4,7 +4,8 @@ import { IEvents } from "../base/Events";
 import { CDN_URL } from "../../utils/constants";
 import { categoryMap } from "../../utils/constants";
 
-
+// Тип для ключей categoryMap
+type CategoryType = keyof typeof categoryMap;
 
 interface IProductCard {
     title: string,
@@ -43,7 +44,11 @@ class ProductCard<T extends IProductCard> extends Component<T> {
     }
 
     set price(value: number) {
-        this.cardPrice.textContent = String(value);
+        if (value === null) {
+            this.cardPrice.textContent = "0";
+        } else {
+            this.cardPrice.textContent = String(value);
+        }
     }
 }
 
@@ -78,7 +83,6 @@ export class CardCatalog extends ExtendedProductCard<ICardCatalog> {
             this.container.addEventListener("click", actions?.onClick);
         }
     }
-    
 }
 
 export class CardPreview extends ExtendedProductCard<ICardPreview> {
@@ -97,16 +101,14 @@ export class CardPreview extends ExtendedProductCard<ICardPreview> {
         } else {
             if (!isInCart) {
             this.cardButton.textContent = "В корзину";
-            this.cardButton.addEventListener("click", () => {
-                this.events.emit("cardPrewiew:addCard");
-            })
             } else {
                 this.cardButton.textContent = "Удалить";
-                this.cardButton.addEventListener("click", () => {
-                    this.events.emit("cardPrewiew:delCard", {form: "cardPreview"});
-                })
             }   
         }
+
+        this.cardButton.addEventListener("click", () => {
+            this.events.emit("cardPrewiew:clickButton", {isInCart});
+        })
         
     }
 

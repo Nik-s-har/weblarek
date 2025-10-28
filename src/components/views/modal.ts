@@ -18,7 +18,7 @@ export class ModalContainer extends Component<IModalContainer> {
         this.modalContent = ensureElement<HTMLDivElement>(".modal__content", this.container);
 
         this.modalClose.addEventListener("click", () => {
-            this.events.emit("modal:close");
+            this.events.emit("modal:close", {});
         })
         this.container.addEventListener("click", (event: Event) => {
             if (event.target === this.container) {
